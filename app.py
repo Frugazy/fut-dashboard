@@ -2,62 +2,57 @@ import streamlit as st
 import requests
 from datetime import datetime
 
-# =========================
-# CONFIGURATION
-# =========================
-DATA_URL = "https://e39c98a1-56a9-4cfb-8388-8d0b9968e590-00-1qolyv41k2k.riker.replit.dev/data"
+# =====================
+# CONFIG
+# =====================
+DATA_URL = "https://fut-backend.onrender.com/data"  # <-- Set to your Render backend URL after deploy
 
-# =========================
-# FETCH DATA
-# =========================
-try:
-    response = requests.get(DATA_URL)
-    response.raise_for_status()
-    data_json = response.json()
-    players = data_json.get("players", [])
-except Exception as e:
-    st.error(f"Error fetching data: {e}")
-    players = []
-
-# =========================
-# DASHBOARD LAYOUT
-# =========================
+def fetch_data():
+    try:
+        response = requests.get(DATA_URL, timeout=10)
+        response.raise_for_status()
+        return response.json().get("players", [])
+    except Exception as e:
+        st.error(f"Error fetching data: {e}")
+        return []
 
 st.set_page_config(page_title="FUT Trading Dashboard", layout="wide")
-st.title("FUT Trading Dashboard")
-st.write(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+st.title("⚽ FUT Trading Dashboard")
 
-# Tabs for 6h, 12h, 24h lows (can expand with Replit DB if needed)
-tabs = st.tabs(["Certified Buys", "Hold Until 6PM", "High Risk", "Monitor"])
+players = fetch_data()
 
-# Helper to filter players by classification
-def filter_players(classification):
-    return [p for p in players if p.get("trading", {}).get("classification") == classification]
+if players:
+    tabs = st.tabs(["Overview", "Certified Buys", "High Risk", "Monitor"])
+    # Overview Tab
+    with tabs[0]:
+        st.subheader("All Players Overview")
+        for p in players:
+            st.image(p.get("image",""), width=80)
+            st.markdown(
+                f"**{p['name']} ({p['rating']})** - {p.get('cardType','N/A')}\n"
+                f"💰 Current BIN: {p['currentBIN']:,}\n"
+                f"📉 6h Low: {p['historical']['6h']['low']:,} | "
+                f"12h Low: {p['historical']['12h']['low']:,} | "
+                f"24h Low: {p['historical']['24h']['low']:,}\n"
+                f"🎯 Target Buy: {p['targetBuy']:,} | 🏷️ Target Sell: {p['targetSell']:,}\n"
+                f"📊 Profit Margin: {p['profitMargin']}% | 🛡️ Risk: {p['classification']} | 💡 Confidence: {p['confidence']}"
+            )
+    # Certified Buys Tab
+    with tabs[1]:
+        st.subheader("Certified Buys")
+        for p in [pl for pl in players if pl["classification"] == "Certified Buy"]:
+            st.markdown(f"**{p['name']} ({p['rating']})** | 💰 {p['currentBIN']:,} | 🎯 {p['targetBuy']:,}")
+    # High Risk Tab
+    with tabs[2]:
+        st.subheader("High Risk")
+        for p in [pl for pl in players if pl["classification"] == "High Risk"]:
+            st.markdown(f"**{p['name']} ({p['rating']})** | 💰 {p['currentBIN']:,} | Risk: {p['classification']}")
+    # Monitor Tab
+    with tabs[3]:
+        st.subheader("Monitor")
+        for p in [pl for pl in players if pl["classification"] == "Monitor"]:
+            st.markdown(f"**{p['name']} ({p['rating']})** | 💰 {p['currentBIN']:,} | Conf: {p['confidence']}")
+else:
+    st.warning("No player data available.")
 
-# =========================
-# POPULATE TABS
-# =========================
-for idx, tab_name in enumerate(["Certified Buy", "Hold Until 6PM", "High Risk", "Monitor"]):
-    with tabs[idx]:
-        filtered_players = filter_players(tab_name)
-        if not filtered_players:
-            st.info("No players in this category at the moment.")
-        else:
-            for p in filtered_players:
-                tr = p["trading"]
-                mk = p["market"]
-                pl = p["player"]
-                st.markdown(f"### 🛒 {pl['name']} ({pl['rating']}) - {pl['cardType']}")
-                st.markdown(
-                    f"💰 **Current BIN:** {mk['currentBIN']:,} coins  \n"
-                    f"📉 **24h Low:** {mk['historical']['24h']['low']:,} coins  \n"
-                    f"📈 **7d High:** {mk['historical']['7d']['high']:,} coins  \n"
-                    f"🎯 **Target Buy:** {tr['targetBuy']:,} coins  \n"
-                    f"🏷️ **Target Sell:** {tr['targetSell']:,} coins  \n"
-                    f"📊 **Profit:** {tr['estimatedProfit']:,} coins ({tr['profitMargin']}%)  \n"
-                    f"🛡️ **Risk:** {tr['classification']}  \n"
-                    f"💡 **Reasoning:** {tr['reasoning']}  \n"
-                    f"**Position:** {pl['position']} | **Club:** {pl['club']} | **League:** {pl['league']}  \n"
-                    f"**Confidence:** {tr['confidence']} | **Data Points:** {mk['dataPoints']}"
-                )
-                st.markdown("---")
+st.markdown(f"Data last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
