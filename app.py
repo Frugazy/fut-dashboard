@@ -1,12 +1,32 @@
 import streamlit as st
 import requests
 from datetime import datetime
+import threading
+import time
 
 # =====================
 # CONFIG
 # =====================
-DATA_URL = "https://fut-backend.onrender.com/data"  # <-- Set to your Render backend URL after deploy
+DATA_URL = "https://fut-backend.onrender.com/data"  # <-- Your Render backend URL
+PING_INTERVAL = 300  # 5 minutes for keep-alive ping
+REFRESH_INTERVAL = 600  # 10 minutes auto-refresh (optional)
 
+# =====================
+# KEEP-ALIVE THREAD
+# =====================
+def keep_alive():
+    while True:
+        try:
+            requests.get(DATA_URL, timeout=5)
+        except:
+            pass
+        time.sleep(PING_INTERVAL)
+
+threading.Thread(target=keep_alive, daemon=True).start()
+
+# =====================
+# FETCH DATA
+# =====================
 def fetch_data():
     try:
         response = requests.get(DATA_URL, timeout=10)
@@ -16,6 +36,9 @@ def fetch_data():
         st.error(f"Error fetching data: {e}")
         return []
 
+# =====================
+# DASHBOARD LAYOUT
+# =====================
 st.set_page_config(page_title="FUT Trading Dashboard", layout="wide")
 st.title("⚽ FUT Trading Dashboard")
 
@@ -23,6 +46,7 @@ players = fetch_data()
 
 if players:
     tabs = st.tabs(["Overview", "Certified Buys", "High Risk", "Monitor"])
+    
     # Overview Tab
     with tabs[0]:
         st.subheader("All Players Overview")
@@ -56,3 +80,10 @@ else:
     st.warning("No player data available.")
 
 st.markdown(f"Data last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+
+# =====================
+# OPTIONAL AUTO-REFRESH
+# =====================
+if REFRESH_INTERVAL:
+    time.sleep(REFRESH_INTERVAL)
+    st.experimental_rerun()
