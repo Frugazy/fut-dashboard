@@ -5,7 +5,7 @@ from datetime import datetime
 # =====================
 # CONFIG
 # =====================
-DATA_URL = "https://fut-backend-x7qo.onrender.com/data"  # <-- Your Render backend URL
+DATA_URL = "https://fut-backend-x7qo.onrender.com/data"  # Render backend URL
 
 def fetch_data():
     try:
@@ -32,41 +32,46 @@ if players:
         st.subheader("All Players Overview")
         for p in players:
             st.image(p.get("image",""), width=80)
+            trading = p.get("trading", {})
+            historical = p.get("historical", {})
             st.markdown(
                 f"**{p['name']} ({p['rating']})** - {p.get('cardType','N/A')}\n"
-                f"💰 Current BIN: {p['currentBIN']:,}\n"
-                f"📉 6h Low: {p['historical']['6h']['low']:,} | "
-                f"12h Low: {p['historical']['12h']['low']:,} | "
-                f"24h Low: {p['historical']['24h']['low']:,}\n"
-                f"🎯 Target Buy: {p['targetBuy']:,} | 🏷️ Target Sell: {p['targetSell']:,}\n"
-                f"📊 Profit Margin: {p['profitMargin']}% | 🛡️ Risk: {p['classification']} | 💡 Confidence: {p['confidence']}"
+                f"💰 Current BIN: {p.get('currentBIN',0):,}\n"
+                f"📉 6h Low: {historical.get('6h',{{}}).get('low',0):,} | "
+                f"12h Low: {historical.get('12h',{{}}).get('low',0):,} | "
+                f"24h Low: {historical.get('24h',{{}}).get('low',0):,}\n"
+                f"🎯 Target Buy: {trading.get('targetBuy',0):,} | 🏷️ Target Sell: {trading.get('targetSell',0):,}\n"
+                f"📊 Profit Margin: {trading.get('profitMargin',0)}% | 🛡️ Risk: {trading.get('classification','N/A')}"
             )
 
     # Certified Buys Tab
     with tabs[1]:
         st.subheader("Certified Buys")
-        for p in [pl for pl in players if pl["classification"] == "Certified Buy"]:
+        for p in [pl for pl in players if pl.get("trading",{}).get("classification")=="Certified Buy"]:
             st.image(p.get("image",""), width=80)
+            trading = p.get("trading",{})
             st.markdown(
-                f"**{p['name']} ({p['rating']})** | 💰 {p['currentBIN']:,} | 🎯 {p['targetBuy']:,} | 🏷️ {p['targetSell']:,}"
+                f"**{p['name']} ({p['rating']})** | 💰 {p.get('currentBIN',0):,} | 🎯 {trading.get('targetBuy',0):,} | 🏷️ {trading.get('targetSell',0):,}"
             )
 
     # High Risk Tab
     with tabs[2]:
         st.subheader("High Risk")
-        for p in [pl for pl in players if pl["classification"] == "High Risk"]:
+        for p in [pl for pl in players if pl.get("trading",{}).get("classification")=="High Risk"]:
             st.image(p.get("image",""), width=80)
+            trading = p.get("trading",{})
             st.markdown(
-                f"**{p['name']} ({p['rating']})** | 💰 {p['currentBIN']:,} | Risk: {p['classification']}"
+                f"**{p['name']} ({p['rating']})** | 💰 {p.get('currentBIN',0):,} | Risk: {trading.get('classification','N/A')}"
             )
 
     # Monitor Tab
     with tabs[3]:
         st.subheader("Monitor")
-        for p in [pl for pl in players if pl["classification"] == "Monitor"]:
+        for p in [pl for pl in players if pl.get("trading",{}).get("classification")=="Monitor"]:
             st.image(p.get("image",""), width=80)
+            trading = p.get("trading",{})
             st.markdown(
-                f"**{p['name']} ({p['rating']})** | 💰 {p['currentBIN']:,} | Conf: {p['confidence']}"
+                f"**{p['name']} ({p['rating']})** | 💰 {p.get('currentBIN',0):,} | Conf: {trading.get('confidence','N/A')}"
             )
 else:
     st.warning("No player data available.")
