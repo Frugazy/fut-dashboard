@@ -1,7 +1,5 @@
-# Python version
-# Ensure Render uses Python 3.13.x
-# python_version >= 3.13,<3.14
-
 streamlit==1.30.0
 requests==2.32.5
-Pillow==10.1.0  # For image display in Streamlit
+beautifulsoup4==4.12.2
+Pillow==9.5.0
+Flask==2.3.3
